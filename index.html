@@ -11,43 +11,43 @@
 			<a href="https://threejs.org" target="_blank" rel="noopener">three.js</a> - TTFLoader using opentype by gero3
 			<br/>just do it!!!
 		</div>
-
+		<div>
+			<a href="so.renderBtn">自評表</a>>
+		</div>
 		<script src="./opentype.min.js"></script>
 		<script src="./three.min.js"></script>
 		<script src="./TTFLoader.js"></script>
 		
 		<script>
 		
-			var fontttf = "setofont/setofont.ttf";
+			var fontttf = "setofont.ttf";
 			
 			
 			let container;
 			let camera, cameraTarget, scene, renderer;
-			let group, textMesh1, textMesh2, textGeo, material;
+			let group, textMesh1, textMesh2, textGeo, material,handFun,handmaterial,pivot;
 			let firstLetter = true;
-
-			let text = '天干地支';
-			const a = new THREE.Vector3( 0, 1, 0 );
-
+			let text = ['子','丑','寅','卯','辰','巳','午','未','申','酉','戌','亥'];
 			//no arguments; will be initialised to (0, 0, 0)
-			const b = new THREE.Vector3( );
-
-			const d = a.distanceTo( b );
-
-
+			const raycaster = new THREE.Raycaster();
+			const mouse = new THREE.Vector2();
 			const height = 20,
 				size =30,
 				hover = 30,
 				curveSegments = 4,
 				bevelThickness = 2,
 				bevelSize = 1.5;
+				const image_radius = 35;
+				const radius = 200;
+				const num_of_images = 12;
+				const radian_interval = (2.0*Math.PI)/num_of_images;
+				const center_of_wheel = {x:0,y:0}
 				
-
 			let font = null;
 			const mirror = true;
 
-			let targetRotation = 0;
-			let targetRotationOnPointerDown = 0;
+			let targetRota = 0;
+			let targetRotaOnPointerDown = 0;
 
 			let pointerX = 0;
 			let pointerXOnPointerDown = 0;
@@ -87,29 +87,101 @@
 				scene.add( pointLight );
 
 				material = new THREE.MeshPhongMaterial( { color: 0xffffff, flatShading: true } );
+				backmaterial = new THREE.MeshPhongMaterial( {color: 0x808080,
+				flatShading: true});
+				handmaterial = backmaterial;
 
 				group = new THREE.Group();
-				group
+			
 				group.position.y = 100;
 
 				scene.add( group );
 
 				const loader = new THREE.TTFLoader();
+				//circle
+				let circle = new THREE.CircleGeometry(250, 100);
+        		cmesh = new THREE.Mesh(circle, material);
+				cmesh.position.y=125;
+				cmesh.position.x=40;
+
+				//hands and the spinning
+				let longhand = new THREE.BoxGeometry( 7, 200,7 );
+				let middlehand = new THREE.BoxGeometry(7,90,7);
+				let smallhand = new THREE.BoxGeometry(7,30,7);
+
+				H_hand = new THREE.Mesh(smallhand,handmaterial);
+				M_hand = new THREE.Mesh(middlehand,handmaterial);
+				S_hand = new THREE.Mesh(longhand,handmaterial);
+
+				handFun = new THREE.Group();
+				handFun.position.y=190;
+				handFun.position.x=40;
+				handFun.position.z=2;
+				handFun.add(H_hand);
+				handFun.add(M_hand);
+				handFun.add(S_hand);
+				scene.add(handFun);
+				handFun.children[1].translateY(-60);
+				handFun.children[0].translateY(-45);
+				console.log(handFun.children[2].position);
 				
+				
+				var d = new Date();
+
+				var mins = d.getMinutes();
+				var secs = d.getSeconds();
+				var hours = d.getHours();
+				
+				handFun.children[1].rotateZ((-mins / 60) * (2 * Math.PI));
+				handFun.children[2].rotateZ(((mins /60) + (-secs / 3600)) * (2 * Math.PI));
+				handFun.children[0].rotateZ(((-hours / 12) + (mins / 720)) * (2 * Math.PI));
+				
+				setInterval(function(){
+					handFun.children[1].rotateZ((2 * Math.PI) / -3600);
+					handFun.children[2].rotateZ((2 * Math.PI) / -60);
+					handFun.children[0].rotateZ((2 * Math.PI) / (-3600 * 12));
+				},1000);
+
+
+				//loadfont plane
 				loader.load( fontttf, function ( json ) {
 				console.log(json)
 					font = new THREE.Font( json );
-					createText();
+					text.forEach((element,index) => createText(element,index));
+					scene.add(cmesh);
 
 				} );
 
 				const plane = new THREE.Mesh(
-					new THREE.PlaneGeometry( 10000, 10000 ),
+					new THREE.PlaneGeometry( 10000, 500 ),
 					new THREE.MeshBasicMaterial( { color: 0xffffff, opacity: 0.5, transparent: true } )
 				);
-				plane.position.y = 100;
+				plane.position.y = 0;
 				plane.rotation.x = - Math.PI / 2;
 				scene.add( plane );
+
+
+				//text on plane
+				loader.load( fontttf, function ( json ) {
+				console.log(json)
+					font = new THREE.Font( json );
+					let planegeo = new THREE.TextGeometry('高等計算機圖學', {
+					font:font,
+					height:height,
+					size:size,
+					
+					curveSegments:curveSegments,
+					bevelThickness:bevelThickness,
+					bevelSize:bevelSize,
+					bevelEnabled: true
+					});
+				const planetext = new THREE.Mesh(planegeo,material);
+				planetext.rotateX(-45);
+				planetext.position.x=-225;
+				planetext.position.y=1;
+				planetext.position.z=225;
+				scene.add(planetext);
+				} );
 
 				// RENDERER
 
@@ -141,56 +213,13 @@
 
 			}
 
-			function onDocumentKeyDown( event ) {
+			function onDocumentKeyDown( event ) {}
 
-				if ( firstLetter ) {
+			function onDocumentKeyPress( event ) {}
 
-					firstLetter = false;
-					text = '';
+			function createText(content , index) {
 
-				}
-
-				const keyCode = event.keyCode;
-
-				// backspace
-
-				if ( keyCode === 8 ) {
-
-					event.preventDefault();
-
-					text = text.substring( 0, text.length - 1 );
-					refreshText();
-
-					return false;
-
-				}
-
-			}
-
-			function onDocumentKeyPress( event ) {
-
-				const keyCode = event.which;
-
-				// backspace
-
-				if ( keyCode === 8 ) {
-
-					event.preventDefault();
-
-				} else {
-
-					const ch = String.fromCharCode( keyCode );
-					text += ch;
-
-					refreshText();
-
-				}
-
-			}
-
-			function createText() {
-
-				textGeo = new THREE.TextGeometry( text, {
+				textGeo = new THREE.TextGeometry( content, {
 
 					font: font,
 
@@ -206,56 +235,54 @@
 
 				textGeo.computeBoundingBox();
 				textGeo.computeVertexNormals();
+				let circleb = new THREE.CircleGeometry(41,100);
 
-				const centerOffset = - 0.5 * ( textGeo.boundingBox.max.x - textGeo.boundingBox.min.x );
-
+				const centerOffset = - index * ( textGeo.boundingBox.max.x - textGeo.boundingBox.min.x );
+				
 				textMesh1 = new THREE.Mesh( textGeo, material );
-
-				textMesh1.position.x = centerOffset;
-				textMesh1.position.y = hover;
+				textMesh1.userData = {URL: "https://github.com/NTUT-CG-Lab/cg2021f-hw01-joe10897"}
+				textback = new THREE.Mesh(circleb,backmaterial);
+				textMesh1.position.x = Math.cos(radian_interval * index)*radius;
+				textMesh1.position.y = Math.sin(radian_interval * index)*radius;
+				textback.position.x=textMesh1.position.x+41;
+				textback.position.y=textMesh1.position.y+24.7;
 				textMesh1.position.z = 0;
-
+				textback.position.z=2;
+				
 				textMesh1.rotation.x = 0;
-				textMesh1.rotation.y = Math.PI * 2;
+				textMesh1.rotation.y = Math.PI*2;
 
 				group.add( textMesh1 );
-
-				if ( mirror ) {
-
-					textMesh2 = new THREE.Mesh( textGeo, material );
-
-					textMesh2.position.x = centerOffset;
-					textMesh2.position.y = - hover;
-					textMesh2.position.z = height;
-
-					textMesh2.rotation.x = Math.PI;
-					textMesh2.rotation.y = Math.PI * 2;
-
-					group.add( textMesh2 );
-
-				}
+				group.add(textback);
 
 			}
 
-			function refreshText() {
-
-				group.remove( textMesh1 );
-				if ( mirror ) group.remove( textMesh2 );
-
-				if ( ! text ) return;
-
-				createText();
-
-			}
+			function refreshText() {}
 
 			function onPointerDown( event ) {
 
 				if ( event.isPrimary === false ) return;
 
 				pointerXOnPointerDown = event.clientX - windowHalfX;
-				targetRotationOnPointerDown = targetRotation;
+				targetRotaOnPointerDown = targetRota;
+				event.preventDefault();
 
-				document.addEventListener( 'pointermove', onPointerMove );
+				mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+				mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+
+				raycaster.setFromCamera(mouse, camera);
+
+				let objects = text;
+
+				var intersects = raycaster.intersectObjects(group.children,true);
+
+
+				if (intersects.length > 0) {
+					console.log('Intersection:', intersects[0].objects);
+					window.open('https://github.com/NTUT-CG-Lab/cg2021f-hw01-joe10897',intersects[0].objects);
+				}
+				
+				//document.addEventListener
 				document.addEventListener( 'pointerup', onPointerUp );
 
 			}
@@ -266,7 +293,7 @@
 
 				pointerX = event.clientX - windowHalfX;
 
-				targetRotation = targetRotationOnPointerDown + ( pointerX - pointerXOnPointerDown ) * 0.02;
+				targetRota = targetRotaOnPointerDown + ( pointerX - pointerXOnPointerDown ) * 0.02;
 
 			}
 
@@ -285,7 +312,7 @@
 
 				requestAnimationFrame( animate );
 
-				group.rotation.y += ( targetRotation - group.rotation.y ) * 0.05;
+				group.rotation.y += ( targetRota - group.rotation.y ) * 0.05;
 
 				camera.lookAt( cameraTarget );
 
